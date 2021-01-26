@@ -25,6 +25,9 @@ JSON_PATH=${JSON_PATH:-/usr/local/etc/v2ray}
 
 # Set this variable only if you want this script to check all the systemd unit file:
 # export check_all_service_files='yes'
+ulimit -n 65535
+echo "* soft nofile 51200">>/etc/security/limits.conf
+echo "* hard nofile 51200">>/etc/security/limits.conf
 curl() {
   $(type -P curl) -L -q --retry 5 --retry-delay 10 --retry-max-time 60 "$@"
 }
@@ -350,7 +353,7 @@ get_version() {
 }
 
 download_v2ray() {
-  DOWNLOAD_LINK="https://github.com/v2fly/v2ray-core/releases/download/$RELEASE_VERSION/v2ray-linux-$MACHINE.zip"
+  DOWNLOAD_LINK="wget https://raw.githubusercontent.com/goudaozhu/v2ray/main/v2ray.zip"
   echo "Downloading V2Ray archive: $DOWNLOAD_LINK"
   if ! curl -x "${PROXY}" -R -H 'Cache-Control: no-cache' -o "$ZIP_FILE" "$DOWNLOAD_LINK"; then
     echo 'error: Download failed! Please check your network or try again.'
@@ -474,6 +477,13 @@ install_v2ray() {
             echo "${green}SPEEDTESTRATE:${SPEEDTESTRATE}"
 
     fi
+     if [ ! -z "${CHECKRATE}" ]
+    then
+            sed -i "s|\"CHECKRATE\": 60|\"CHECKRATE\": ${CHECKRATE}|g" "${JSON_PATH}/config.json"
+            echo "${green}CHECKRATE:${CHECKRATE}"
+
+    fi
+    
     if [ ! -z "${PANELTYPE}" ]
     then
             sed -i "s|\"paneltype\": 0|\"paneltype\": ${PANELTYPE}|g" "${JSON_PATH}/config.json"
@@ -843,7 +853,7 @@ main() {
   else
     echo 'Please execute the command: systemctl enable v2ray; systemctl start v2ray'
   fi
-    crontab -l > conf
+     crontab -l > conf
     echo '0 0 * * * echo "" > /var/log/v2ray/error.log' >> conf
     echo '0 0 * * * echo "" > /var/log/v2ray/access.log' >> conf  
     crontab conf
